@@ -1,2 +1,5 @@
 # Mirror Dashboard
-## A clean, simple UI for Magic Mirrors
+A clean, simple UI for Magic Mirrors
+
+## Raspberry Pi Setup
+WIP
