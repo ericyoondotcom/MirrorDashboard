@@ -4,7 +4,7 @@ import React from "react";
 import { relative } from "path";
 
 import moment from "moment";
-import {apiKey, clientId, calendars, calendarLookAhead} from "./config";
+import {apiKey, clientId, calendars, calendarLookAhead, maxEvents} from "./config";
 
 export default class Dashboard extends React.Component {
     constructor(props){
@@ -14,7 +14,7 @@ export default class Dashboard extends React.Component {
             signedIn: false,
             loading: true,
             user: null,
-            events: []
+            events: null
         }
         gapi.load("client:auth2", () => {
             console.log("client loaded");
@@ -51,24 +51,35 @@ export default class Dashboard extends React.Component {
     }
 
     fetchData = () => {
-        let now = moment();
+        
         const calendarRequests = calendars.map((calendarId) => {
+            let now = moment();
             return gapi.client.request({
                 path: "https://www.googleapis.com/calendar/v3/calendars/" + calendarId + "/events",
                 method: "GET",
                 params: {
                     timeMin: now.toISOString(),
-                    timeMax: now.add(calendarLookAhead, "days").toISOString()
+                    timeMax: now.add(calendarLookAhead, "days").toISOString(),
+                    singleEvents: true
                 }
             });
         });
         Promise.all(calendarRequests).then((results) => {
             console.log(results);
             const events = results.map((result) => {
-                return result.items
-                //TODO: Process data
-            }).flat();
+                return result.result.items.map((item) => {
+                    return {
+                        name: item.summary,
+                        start: moment(item.start.dateTime),
+                        end: moment(item.end.dateTime),
+                        location: item.location
+                    };
+                });
+            }).flat().sort((a, b) => {
+                return a.start.valueOf() - b.start.valueOf();
+            });
             this.setState({events});
+            console.log(events);
         });
     }
 
@@ -102,43 +113,68 @@ export default class Dashboard extends React.Component {
         else
             timeOfDay = "night";
 
+        let eventsHtml;
+        if(this.state.events === null){
+            eventsHtml = (
+                <h2 style={{textAlign: "center", fontSize: "15px"}}>Loading...</h2>
+            );
+        } else if(this.state.events.length == 0){
+            eventsHtml = (
+                <h2 style={{textAlign: "center", fontSize: "15px"}}>Nothing's on your calendar for the next {maxEvents} days.</h2>
+            );
+        }else{
+            eventsHtml = this.state.events.slice(0, maxEvents - 1).map((event, i) => {
+                return (
+                    <li>{event.name} <span className="dimmed right">{event.start.fromNow()}</span></li>
+                );
+            })
+        }
+
         return (
             <div className="fullPage reflective">
-                <table style={{width: "100%", height: "100%"}} className="celled">
-                    <tr style={{height: "50%"}}>
-                        <td style={{width: "50%", position: "relative"}}>
-                            <h1 className="sectionHeader" style={{textAlign: "center"}} onClick={this.handleSignOut}>Good {timeOfDay}, {this.state.user.getBasicProfile().getGivenName()}!</h1>
-                            <table style={{position: "relative", left: 0, right: 0, margin: "auto", border: "none", textAlign: "center"}}>
-                                <tr>
-                                    <td style={{border: "none", padding: "40px"}}>
-                                        <h2 style={{fontSize: "20px", margin: 0}}>HOME</h2>
-                                        <h1 style={{fontSize: "100px", margin: 0}}>75°</h1>
-                                    </td>
-                                    <td style={{border: "none", padding: "40px"}}>
-                                        <h2 style={{fontSize: "20px", margin: 0}}>WORK</h2>
-                                        <h1 style={{fontSize: "100px", margin: 0}}>73°</h1>
-                                    </td>
-                                </tr>
-                            </table>
+                <table className="celled" id="main">
+                    <tr>
+                        <td>
+                            <div className="sectionWrapper">
+                                <h1 className="sectionHeader" style={{textAlign: "center"}} onClick={this.handleSignOut}>Good {timeOfDay}, {this.state.user.getBasicProfile().getGivenName()}!</h1>
+                                <div style={{marginTop: "10%"}} />
+                                <table style={{position: "relative", left: 0, right: 0, margin: "auto", border: "none", textAlign: "center"}}>
+                                    <tr>
+                                        <td style={{border: "none", padding: "40px"}}>
+                                            <h2 style={{fontSize: "20px", margin: 0}}>HOME</h2>
+                                            <h1 style={{fontSize: "100px", margin: 0}}>75°</h1>
+                                        </td>
+                                        <td style={{border: "none", padding: "40px"}}>
+                                            <h2 style={{fontSize: "20px", margin: 0}}>WORK</h2>
+                                            <h1 style={{fontSize: "100px", margin: 0}}>73°</h1>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
                         </td>
-                        <td style={{width: "50%", position: "relative"}}>
-                            <h1 className="sectionHeader" style={{textAlign: "center"}}>Google Fit Goals</h1>
+                        <td>
+                            <div className="sectionWrapper">
+                                <h1 className="sectionHeader" style={{textAlign: "center"}}>Google Fit Goals</h1>
+                            </div>
                         </td>
                     </tr>
-                    <tr style={{height: "50%"}}>
-                        <td style={{width: "50%", position: "relative"}}>
-                            <h1 className="sectionHeader" style={{textAlign: "center"}}>Today's Events</h1>
-                            <ul style={{margin: "0 20%", fontSize: "25px"}}>
-                                <li>A meeting <span className="dimmed right">In 2 hours</span></li>
-                                <li>Another event <span className="dimmed right">Tomorrow</span></li>
-                            </ul>
+                    <tr>
+                        <td>
+                            <div className="sectionWrapper">
+                                <h1 className="sectionHeader" style={{textAlign: "center"}}>Events</h1>
+                                <ul style={{margin: "0 20%", fontSize: "25px", padding: 0}}>
+                                    {eventsHtml}
+                                </ul>
+                            </div>
                         </td>
-                        <td style={{width: "50%", position: "relative"}}>
-                            <h1 className="sectionHeader" style={{textAlign: "center"}}>Tasks</h1>
-                            <ul style={{margin: "0 20%", fontSize: "25px"}}>
-                                <li>Do something <span className="dimmed right">Due tomorrow</span></li>
-                                <li>Do something else <span className="dimmed right">Due in 2 days</span></li>
-                            </ul>
+                        <td>
+                            <div className="sectionWrapper">
+                                <h1 className="sectionHeader" style={{textAlign: "center"}}>Tasks</h1>
+                                <ul style={{margin: "0 20%", fontSize: "25px"}}>
+                                    <li>Do something <span className="dimmed right">Due tomorrow</span></li>
+                                    <li>Do something else <span className="dimmed right">Due in 2 days</span></li>
+                                </ul>
+                            </div>
                         </td>
                     </tr>
                 </table>

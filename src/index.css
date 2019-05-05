@@ -23,7 +23,7 @@ p, h1, h2, h3, h4, h5, h6 {
   height: 100vh;
   width: 100vw;
   padding: none;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .celled td, .celled th {
@@ -36,10 +36,6 @@ p, h1, h2, h3, h4, h5, h6 {
 }
 
 h1.sectionHeader {
-  position: absolute;
-  top: 10px;
-  left: 0;
-  right: 0;
   font-weight: normal;
   font-size: 40px;
 }
@@ -50,4 +46,27 @@ h1.sectionHeader {
 
 .right {
   float: right;
+}
+
+table#main {
+  width: 100%;
+  height: 100%;
+  table-layout: fixed;
+}
+
+table#main td {
+  width: 50%;
+  position: relative;
+  white-space: nowrap;
+}
+
+table#main td, table#main tr {
+  overflow: hidden;
+  height: 50%;
+}
+
+.sectionWrapper {
+  overflow-y: auto;
+  width: 100%;
+  height: 100%;
 }
