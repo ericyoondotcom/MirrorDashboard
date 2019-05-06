@@ -4,7 +4,7 @@ import React from "react";
 import { relative } from "path";
 
 import moment from "moment";
-import {apiKey, clientId, calendars, calendarLookAhead, maxEvents} from "./config";
+import {apiKey, clientId, calendars, calendarLookAhead, maxEntries, taskLists} from "./config";
 
 export default class Dashboard extends React.Component {
     constructor(props){
@@ -14,14 +14,15 @@ export default class Dashboard extends React.Component {
             signedIn: false,
             loading: true,
             user: null,
-            events: null
+            events: null,
+            tasks: null
         }
         gapi.load("client:auth2", () => {
             console.log("client loaded");
             gapi.client.init({
                 apiKey,
                 clientId,
-                scope: "https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly"
+                scope: "https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks.readonly"
             }).then(() => {
                 console.log("gapi initted");
                 let authInstance = gapi.auth2.getAuthInstance();
@@ -65,7 +66,6 @@ export default class Dashboard extends React.Component {
             });
         });
         Promise.all(calendarRequests).then((results) => {
-            console.log(results);
             const events = results.map((result) => {
                 return result.result.items.map((item) => {
                     return {
@@ -79,7 +79,41 @@ export default class Dashboard extends React.Component {
                 return a.start.valueOf() - b.start.valueOf();
             });
             this.setState({events});
-            console.log(events);
+        });
+
+        const taskRequests = taskLists.map((list) => {
+            return gapi.client.request({
+                path: "https://www.googleapis.com/tasks/v1/lists/" + list + "/tasks",
+                method: "GET",
+                params: {
+                    showCompleted: false,
+                    maxResults: maxEntries
+                }
+            });
+        });
+        Promise.all(taskRequests).then((results) => {
+            console.log(results);
+            const tasks = results.map((result) => {
+                return result.result.items.map((item) => {
+                    return {
+                        name: item.title,
+                        //TODO: Add due date support
+                        duedate: /*"due" in item ? moment(item.due).add(1, "days").local(): */null
+                    };
+                });
+            }).flat().sort((a, b) => {
+                if(a.duedate === null){
+                    if(b.duedate === null){
+                        return a;
+                    }
+                    return b;
+                }
+                if(b.duedate === null){
+                    return a;
+                }
+                return a.duedate.valueOf() - b.duedate.valueOf();
+            });
+            this.setState({tasks});
         });
     }
 
@@ -120,14 +154,41 @@ export default class Dashboard extends React.Component {
             );
         } else if(this.state.events.length == 0){
             eventsHtml = (
-                <h2 style={{textAlign: "center", fontSize: "15px"}}>Nothing's on your calendar for the next {maxEvents} days.</h2>
+                <h2 style={{textAlign: "center", fontSize: "15px"}}>Your calendar's clear for the next {maxEntries} days.</h2>
             );
         }else{
-            eventsHtml = this.state.events.slice(0, maxEvents - 1).map((event, i) => {
+            eventsHtml = this.state.events.slice(0, maxEntries - 1).map((event, i) => {
                 return (
                     <li>{event.name} <span className="dimmed right">{event.start.fromNow()}</span></li>
                 );
-            })
+            });
+            if(maxEntries < this.state.events.length){
+                eventsHtml.push(
+                    <p style={{textAlign: "center", fontSize: "15px"}}>{this.state.events.length - maxEntries} more events hidden</p>
+                );
+            }
+        }
+
+        let tasksHtml;
+        if(this.state.tasks === null){
+            tasksHtml = (
+                <h2 style={{textAlign: "center", fontSize: "15px"}}>Loading...</h2>
+            );
+        } else if(this.state.tasks.length == 0){
+            tasksHtml = (
+                <h2 style={{textAlign: "center", fontSize: "15px"}}>Good job! Nothing to do.</h2>
+            );
+        }else{
+            tasksHtml = this.state.tasks.slice(0, maxEntries - 1).map((task, i) => {
+                return (
+                    <li>{task.name} <span className="dimmed right">{task.duedate === null ? "" : ("Due " + task.duedate.fromNow().toString())}</span></li>
+                );
+            });
+            if(maxEntries < this.state.tasks.length){
+                tasksHtml.push(
+                    <p style={{textAlign: "center", fontSize: "15px"}}>{this.state.tasks.length - maxEntries} more events hidden</p>
+                );
+            }
         }
 
         return (
@@ -137,16 +198,19 @@ export default class Dashboard extends React.Component {
                         <td>
                             <div className="sectionWrapper">
                                 <h1 className="sectionHeader" style={{textAlign: "center"}} onClick={this.handleSignOut}>Good {timeOfDay}, {this.state.user.getBasicProfile().getGivenName()}!</h1>
-                                <div style={{marginTop: "10%"}} />
+                                <div style={{padding: "1.7vh", textAlign: "center"}}>
+                                    <h2 style={{fontSize: "2vh", margin: 0}}>It's Monday, April 2</h2>
+                                    <h1 style={{fontSize: "9vh", margin: 0}}>5:30 PM</h1>
+                                </div>
                                 <table style={{position: "relative", left: 0, right: 0, margin: "auto", border: "none", textAlign: "center"}}>
                                     <tr>
-                                        <td style={{border: "none", padding: "40px"}}>
-                                            <h2 style={{fontSize: "20px", margin: 0}}>HOME</h2>
-                                            <h1 style={{fontSize: "100px", margin: 0}}>75°</h1>
+                                        <td style={{border: "none", paddingRight: "40px"}}>
+                                            <h2 style={{fontSize: "1.6vh", margin: 0}}>HOME</h2>
+                                            <h1 style={{fontSize: "8vh", margin: 0}}>75°</h1>
                                         </td>
-                                        <td style={{border: "none", padding: "40px"}}>
-                                            <h2 style={{fontSize: "20px", margin: 0}}>WORK</h2>
-                                            <h1 style={{fontSize: "100px", margin: 0}}>73°</h1>
+                                        <td style={{border: "none", paddingLeft: "40px"}}>
+                                            <h2 style={{fontSize: "1.6vh", margin: 0}}>WORK</h2>
+                                            <h1 style={{fontSize: "8vh", margin: 0}}>73°</h1>
                                         </td>
                                     </tr>
                                 </table>
@@ -162,7 +226,7 @@ export default class Dashboard extends React.Component {
                         <td>
                             <div className="sectionWrapper">
                                 <h1 className="sectionHeader" style={{textAlign: "center"}}>Events</h1>
-                                <ul style={{margin: "0 20%", fontSize: "25px", padding: 0}}>
+                                <ul style={{margin: "0 20%", fontSize: "1.7vh", padding: 0}}>
                                     {eventsHtml}
                                 </ul>
                             </div>
@@ -170,9 +234,8 @@ export default class Dashboard extends React.Component {
                         <td>
                             <div className="sectionWrapper">
                                 <h1 className="sectionHeader" style={{textAlign: "center"}}>Tasks</h1>
-                                <ul style={{margin: "0 20%", fontSize: "25px"}}>
-                                    <li>Do something <span className="dimmed right">Due tomorrow</span></li>
-                                    <li>Do something else <span className="dimmed right">Due in 2 days</span></li>
+                                <ul style={{margin: "0 20%", fontSize: "1.7vh", padding: 0}}>
+                                    {tasksHtml}
                                 </ul>
                             </div>
                         </td>
