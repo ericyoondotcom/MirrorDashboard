@@ -3,30 +3,31 @@
 import React from "react";
 import { relative } from "path";
 
-import request from "request";
+import DarkSkyApi from 'dark-sky-api';
 import moment from "moment";
 import {apiKey, clientId, calendars, calendarLookAhead, maxEntries, taskLists, secondaryLocation, homeLatitude, homeLongitude, workLatitude, workLongitude, darkSkyKey} from "./config";
 
 export default class Dashboard extends React.Component {
     constructor(props){
         super(props);
-        moment().format();
+        
+        DarkSkyApi.apiKey = darkSkyKey;
         this.state = {
             currentTime: moment(),
             signedIn: false,
             loading: true,
             user: null,
             events: null,
-            tasks: null
+            tasks: null,
+            homeWeather: null,
+            workWeather: null
         }
         gapi.load("client:auth2", () => {
-            console.log("client loaded");
             gapi.client.init({
                 apiKey,
                 clientId,
                 scope: "https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks.readonly"
             }).then(() => {
-                console.log("gapi initted");
                 let authInstance = gapi.auth2.getAuthInstance();
                 if(authInstance.isSignedIn.get()){
                     this.setState({signedIn: true, loading: false, user: authInstance.currentUser.get()});
@@ -57,10 +58,21 @@ export default class Dashboard extends React.Component {
     }
 
     fetchData = () => {
-        
-        request.get("https://api.darksky.net/forecast/" + darkSkyKey + "/" + homeLatitude.toString() + "," + homeLongitude.toString(), (err, resp, body) => {
-            console.error(err);
-            console.log(body);
+        const darkSkyEndpoint = "https://api.darksky.net/forecast/" + darkSkyKey + "/" + homeLatitude.toString() + "," + homeLongitude.toString();
+        console.debug(darkSkyEndpoint);
+
+        DarkSkyApi.loadCurrent({
+            latitude: homeLatitude,
+            longitude: homeLongitude
+        }).then((result) => {
+            this.setState({homeWeather: result});
+        });
+
+        DarkSkyApi.loadCurrent({
+            latitude: workLatitude,
+            longitude: workLongitude
+        }).then((result) => {
+            this.setState({workWeather: result});
         });
 
         const calendarRequests = calendars.map((calendarId) => {
@@ -82,7 +94,8 @@ export default class Dashboard extends React.Component {
                         name: item.summary,
                         start: moment(item.start.dateTime),
                         end: moment(item.end.dateTime),
-                        location: item.location
+                        location: item.location,
+                        id: item.id
                     };
                 });
             }).flat().sort((a, b) => {
@@ -102,12 +115,13 @@ export default class Dashboard extends React.Component {
             });
         });
         Promise.all(taskRequests).then((results) => {
-            console.log(results);
+
             const tasks = results.map((result) => {
                 if(result.result.items === undefined) return [];
                 return result.result.items.map((item) => {
                     return {
                         name: item.title,
+                        id: item.id,
                         //TODO: Add due date support
                         duedate: /*"due" in item ? moment(item.due).add(1, "days").local(): */null
                     };
@@ -170,12 +184,12 @@ export default class Dashboard extends React.Component {
         }else{
             eventsHtml = this.state.events.slice(0, maxEntries - 1).map((event, i) => {
                 return (
-                    <li>{event.name} <span className="dimmed right">{event.start.fromNow()} – {event.start.calendar()}</span></li>
+                    <li key={"event-" + event.id}>{event.name} <span className="dimmed right">{event.start.fromNow()} – {event.start.calendar()}</span></li>
                 );
             });
             if(maxEntries < this.state.events.length){
                 eventsHtml.push(
-                    <p style={{textAlign: "center", fontSize: "15px"}}>{this.state.events.length - maxEntries} more events hidden</p>
+                    <p key="hiddenEventsNotif" style={{textAlign: "center", fontSize: "15px"}}>{this.state.events.length - maxEntries} more events hidden</p>
                 );
             }
         }
@@ -192,12 +206,12 @@ export default class Dashboard extends React.Component {
         }else{
             tasksHtml = this.state.tasks.slice(0, maxEntries - 1).map((task, i) => {
                 return (
-                    <li>{task.name} <span className="dimmed right">{task.duedate === null ? "" : ("Due " + task.duedate.fromNow().toString())}</span></li>
+                    <li key={"task-" + task.id} >{task.name} <span className="dimmed right">{task.duedate === null ? "" : ("Due " + task.duedate.fromNow().toString())}</span></li>
                 );
             });
             if(maxEntries < this.state.tasks.length){
                 tasksHtml.push(
-                    <p style={{textAlign: "center", fontSize: "15px"}}>{this.state.tasks.length - maxEntries} more events hidden</p>
+                    <p key="hiddenTasksNotif" style={{textAlign: "center", fontSize: "15px"}}>{this.state.tasks.length - maxEntries} more tasks hidden</p>
                 );
             }
         }
@@ -205,52 +219,60 @@ export default class Dashboard extends React.Component {
         return (
             <div className="fullPage reflective">
                 <table className="celled" id="main">
-                    <tr>
-                        <td>
-                            <div className="sectionWrapper">
-                                <h1 className="sectionHeader" style={{textAlign: "center"}} onClick={this.handleSignOut}>Good {timeOfDay}, {this.state.user.getBasicProfile().getGivenName()}!</h1>
-                                <div style={{padding: "1.7vh", textAlign: "center"}}>
-                                    <h2 style={{fontSize: "2vh", margin: 0}}>It's {this.state.currentTime.format("dddd, MMMM Do")}</h2>
-                                    <h1 style={{fontSize: "9vh", margin: 0}}>{this.state.currentTime.format("h:mm A")}</h1>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div className="sectionWrapper">
+                                    <h1 className="sectionHeader" style={{textAlign: "center"}} onClick={this.handleSignOut}>Good {timeOfDay}, {this.state.user.getBasicProfile().getGivenName()}!</h1>
+                                    <div style={{padding: "1.7vh", textAlign: "center"}}>
+                                        <h2 style={{fontSize: "2vh", margin: 0}}>It's {this.state.currentTime.format("dddd, MMMM Do")}</h2>
+                                        <h1 style={{fontSize: "9vh", margin: 0}}>{this.state.currentTime.format("h:mm A")}</h1>
+                                    </div>
+                                    <table style={{position: "relative", left: 0, right: 0, margin: "auto", border: "none", textAlign: "center"}}>
+                                        <tbody>
+                                            <tr>
+                                                <td style={{border: "none", paddingRight: "40px"}}>
+                                                    <h2 style={{fontSize: "1.6vh", margin: 0}}>HOME</h2>
+                                                    <h1 style={{fontSize: "8vh", margin: 0}}>{this.state.homeWeather === null ? "..." : (Math.round(this.state.homeWeather.temperature) + "°")}</h1>
+                                                    <h2 style={{fontSize: "1.6vh", margin: 0}}>{this.state.homeWeather === null ? "Loading weather" : this.state.homeWeather.summary}</h2>
+                                                    <h2 style={{fontSize: "1.6vh", margin: 0}}>{this.state.homeWeather === null ? "Loading precipitation" : (this.state.homeWeather.precipProbability.toString() + "% chance precip.")}</h2>
+                                                </td>
+                                                <td style={{border: "none", paddingLeft: "40px"}}>
+                                                    <h2 style={{fontSize: "1.6vh", margin: 0}}>{secondaryLocation.toUpperCase()}</h2>
+                                                    <h1 style={{fontSize: "8vh", margin: 0}}>{this.state.workWeather === null ? "..." : (Math.round(this.state.workWeather.temperature) + "°")}</h1>
+                                                    <h2 style={{fontSize: "1.6vh", margin: 0}}>{this.state.workWeather === null ? "Loading weather" : this.state.workWeather.summary}</h2>
+                                                    <h2 style={{fontSize: "1.6vh", margin: 0}}>{this.state.workWeather === null ? "Loading precipitation" : (this.state.workWeather.precipProbability.toString() + "% chance precip.")}</h2>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
-                                <table style={{position: "relative", left: 0, right: 0, margin: "auto", border: "none", textAlign: "center"}}>
-                                    <tr>
-                                        <td style={{border: "none", paddingRight: "40px"}}>
-                                            <h2 style={{fontSize: "1.6vh", margin: 0}}>HOME</h2>
-                                            <h1 style={{fontSize: "8vh", margin: 0}}>75°</h1>
-                                        </td>
-                                        <td style={{border: "none", paddingLeft: "40px"}}>
-                                            <h2 style={{fontSize: "1.6vh", margin: 0}}>{secondaryLocation.toUpperCase()}</h2>
-                                            <h1 style={{fontSize: "8vh", margin: 0}}>73°</h1>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </td>
-                        <td>
-                            <div className="sectionWrapper">
-                                <h1 className="sectionHeader" style={{textAlign: "center"}}>Google Fit Goals</h1>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div className="sectionWrapper">
-                                <h1 className="sectionHeader" style={{textAlign: "center"}}>Events</h1>
-                                <ul style={{margin: "0 20%", fontSize: "1.7vh", padding: 0}}>
-                                    {eventsHtml}
-                                </ul>
-                            </div>
-                        </td>
-                        <td>
-                            <div className="sectionWrapper">
-                                <h1 className="sectionHeader" style={{textAlign: "center"}}>Tasks</h1>
-                                <ul style={{margin: "0 20%", fontSize: "1.7vh", padding: 0}}>
-                                    {tasksHtml}
-                                </ul>
-                            </div>
-                        </td>
-                    </tr>
+                            </td>
+                            <td>
+                                <div className="sectionWrapper">
+                                    <h1 className="sectionHeader" style={{textAlign: "center"}}>Google Fit Goals</h1>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div className="sectionWrapper">
+                                    <h1 className="sectionHeader" style={{textAlign: "center"}}>Events</h1>
+                                    <ul style={{margin: "0 20%", fontSize: "1.7vh", padding: 0}}>
+                                        {eventsHtml}
+                                    </ul>
+                                </div>
+                            </td>
+                            <td>
+                                <div className="sectionWrapper">
+                                    <h1 className="sectionHeader" style={{textAlign: "center"}}>Tasks</h1>
+                                    <ul style={{margin: "0 20%", fontSize: "1.7vh", padding: 0}}>
+                                        {tasksHtml}
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
         );
