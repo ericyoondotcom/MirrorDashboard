@@ -3,14 +3,16 @@
 import React from "react";
 import { relative } from "path";
 
+import request from "request";
 import moment from "moment";
-import {apiKey, clientId, calendars, calendarLookAhead, maxEntries, taskLists} from "./config";
+import {apiKey, clientId, calendars, calendarLookAhead, maxEntries, taskLists, secondaryLocation, homeLatitude, homeLongitude, workLatitude, workLongitude, darkSkyKey} from "./config";
 
 export default class Dashboard extends React.Component {
     constructor(props){
         super(props);
         moment().format();
         this.state = {
+            currentTime: moment(),
             signedIn: false,
             loading: true,
             user: null,
@@ -35,7 +37,10 @@ export default class Dashboard extends React.Component {
             });
         });
         
-        
+        setInterval(() => {
+            this.setState({currentTime: moment()});
+        }, 5000);
+
     }
 
     handleSignIn = () => {
@@ -53,6 +58,11 @@ export default class Dashboard extends React.Component {
 
     fetchData = () => {
         
+        request.get("https://api.darksky.net/forecast/" + darkSkyKey + "/" + homeLatitude.toString() + "," + homeLongitude.toString(), (err, resp, body) => {
+            console.error(err);
+            console.log(body);
+        });
+
         const calendarRequests = calendars.map((calendarId) => {
             let now = moment();
             return gapi.client.request({
@@ -94,6 +104,7 @@ export default class Dashboard extends React.Component {
         Promise.all(taskRequests).then((results) => {
             console.log(results);
             const tasks = results.map((result) => {
+                if(result.result.items === undefined) return [];
                 return result.result.items.map((item) => {
                     return {
                         name: item.title,
@@ -159,7 +170,7 @@ export default class Dashboard extends React.Component {
         }else{
             eventsHtml = this.state.events.slice(0, maxEntries - 1).map((event, i) => {
                 return (
-                    <li>{event.name} <span className="dimmed right">{event.start.fromNow()}</span></li>
+                    <li>{event.name} <span className="dimmed right">{event.start.fromNow()} – {event.start.calendar()}</span></li>
                 );
             });
             if(maxEntries < this.state.events.length){
@@ -199,8 +210,8 @@ export default class Dashboard extends React.Component {
                             <div className="sectionWrapper">
                                 <h1 className="sectionHeader" style={{textAlign: "center"}} onClick={this.handleSignOut}>Good {timeOfDay}, {this.state.user.getBasicProfile().getGivenName()}!</h1>
                                 <div style={{padding: "1.7vh", textAlign: "center"}}>
-                                    <h2 style={{fontSize: "2vh", margin: 0}}>It's Monday, April 2</h2>
-                                    <h1 style={{fontSize: "9vh", margin: 0}}>5:30 PM</h1>
+                                    <h2 style={{fontSize: "2vh", margin: 0}}>It's {this.state.currentTime.format("dddd, MMMM Do")}</h2>
+                                    <h1 style={{fontSize: "9vh", margin: 0}}>{this.state.currentTime.format("h:mm A")}</h1>
                                 </div>
                                 <table style={{position: "relative", left: 0, right: 0, margin: "auto", border: "none", textAlign: "center"}}>
                                     <tr>
@@ -209,7 +220,7 @@ export default class Dashboard extends React.Component {
                                             <h1 style={{fontSize: "8vh", margin: 0}}>75°</h1>
                                         </td>
                                         <td style={{border: "none", paddingLeft: "40px"}}>
-                                            <h2 style={{fontSize: "1.6vh", margin: 0}}>WORK</h2>
+                                            <h2 style={{fontSize: "1.6vh", margin: 0}}>{secondaryLocation.toUpperCase()}</h2>
                                             <h1 style={{fontSize: "8vh", margin: 0}}>73°</h1>
                                         </td>
                                     </tr>
