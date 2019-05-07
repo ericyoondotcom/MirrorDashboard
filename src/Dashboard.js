@@ -1,11 +1,11 @@
 /* global gapi */
 
 import React from "react";
-import { relative } from "path";
 
+import { Doughnut } from 'react-chartjs-2';
 import DarkSkyApi from 'dark-sky-api';
 import moment from "moment";
-import {apiKey, clientId, calendars, calendarLookAhead, maxEntries, taskLists, secondaryLocation, homeLatitude, homeLongitude, workLatitude, workLongitude, darkSkyKey} from "./config";
+import {apiKey, clientId, calendars, calendarLookAhead, maxEntries, taskLists, secondaryLocation, homeLatitude, homeLongitude, workLatitude, workLongitude, darkSkyKey, googleFitActivity, googleFitActivityUnits, googleAuthScopes, fitGoal} from "./config";
 
 export default class Dashboard extends React.Component {
     constructor(props){
@@ -20,18 +20,19 @@ export default class Dashboard extends React.Component {
             events: null,
             tasks: null,
             homeWeather: null,
-            workWeather: null
+            workWeather: null,
+            fit: null
         }
         gapi.load("client:auth2", () => {
             gapi.client.init({
                 apiKey,
                 clientId,
-                scope: "https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks.readonly"
+                scope: googleAuthScopes
             }).then(() => {
                 let authInstance = gapi.auth2.getAuthInstance();
                 if(authInstance.isSignedIn.get()){
                     this.setState({signedIn: true, loading: false, user: authInstance.currentUser.get()});
-                    this.fetchData();
+                    this.fetchAll();
                 }else{
                     this.setState({signedIn: false, loading: false});
                 }
@@ -47,7 +48,7 @@ export default class Dashboard extends React.Component {
     handleSignIn = () => {
         gapi.auth2.getAuthInstance().signIn().then((result) => {
             this.setState({signedIn: true, loading: false, user: result});
-            this.fetchData();
+            this.fetchAll();
         });
     }
 
@@ -57,7 +58,7 @@ export default class Dashboard extends React.Component {
         });
     }
 
-    fetchData = () => {
+    fetchWeather = () => {
         const darkSkyEndpoint = "https://api.darksky.net/forecast/" + darkSkyKey + "/" + homeLatitude.toString() + "," + homeLongitude.toString();
         console.debug(darkSkyEndpoint);
 
@@ -74,7 +75,9 @@ export default class Dashboard extends React.Component {
         }).then((result) => {
             this.setState({workWeather: result});
         });
+    }
 
+    fetchCalendar = () => {
         const calendarRequests = calendars.map((calendarId) => {
             let now = moment();
             return gapi.client.request({
@@ -103,7 +106,9 @@ export default class Dashboard extends React.Component {
             });
             this.setState({events});
         });
+    }
 
+    fetchTasks = () => {
         const taskRequests = taskLists.map((list) => {
             return gapi.client.request({
                 path: "https://www.googleapis.com/tasks/v1/lists/" + list + "/tasks",
@@ -140,6 +145,41 @@ export default class Dashboard extends React.Component {
             });
             this.setState({tasks});
         });
+    }
+
+    fetchFit = () => {
+        gapi.client.request({
+            path: "https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate",
+            method: "POST",
+            body: {
+                "aggregateBy": [
+                  {
+                    "dataTypeName": googleFitActivity
+                  }
+                ],
+                "bucketByTime": {
+                  "durationMillis": 86400000
+                },
+                "startTimeMillis": moment().hour(23).minute(59).second(59).millisecond(999).subtract(1, "week").valueOf(),
+                "endTimeMillis": moment().hour(23).minute(59).second(59).millisecond(999).valueOf()
+            }
+        }).then((result) => {
+            console.log(result);
+            let data = result.result.bucket.map((day) => {
+              if(day.dataset.length === 0){
+                return 0;
+              }
+              return day.dataset[0].point[0].value[0].intVal; 
+            });
+            this.setState({fit: data});
+        });
+    }
+
+    fetchAll = () => {
+        this.fetchWeather();
+        this.fetchCalendar();
+        this.fetchTasks();
+        this.fetchFit();
     }
 
     render(){
@@ -251,6 +291,98 @@ export default class Dashboard extends React.Component {
                             <td>
                                 <div className="sectionWrapper">
                                     <h1 className="sectionHeader" style={{textAlign: "center"}}>Google Fit Goals</h1>
+                                    {
+                                        this.state.fit === null ?
+                                            (
+                                                <p style={{textAlign: "center", fontSize: "15px"}}>Loading...</p>
+                                            )
+                                        :
+                                            (
+                                                <div style={{width: "100%", height: "40%", position: "relative", marginTop: "2%", }}>
+                                                    <Doughnut data={{
+                                                        datasets: [{
+                                                            data: [
+                                                                this.state.fit[this.state.fit.length - 1],
+                                                                this.state.fit[this.state.fit.length - 1] > fitGoal ? 0 : (fitGoal - this.state.fit[this.state.fit.length - 1])
+                                                            ],
+                                                            backgroundColor: [
+                                                                "white",
+                                                                "black"
+                                                            ]  
+                                                        }],
+                                                        labels: [
+                                                            "Completed",
+                                                            "Left to go"
+                                                        ]
+                                                    }}
+                                                    width={9}
+                                                    height={9}
+                                                    options={{
+                                                        title: {
+                                                            display: true,
+                                                            fontFamily: "'Assistant', 'Oxygen', 'Roboto', sans-serif",
+                                                            fontColor: "white",
+                                                            text: ["Today", this.state.fit[this.state.fit.length - 1] + " " + googleFitActivityUnits],
+                                                            fontSize: 20
+                                                        },
+                                                        legend: {
+                                                            display: false
+                                                        },
+                                                        maintainAspectRatio: false,
+                                                        cutoutPercentage: 80
+                                                    }} />
+                                                    <div style={{marginTop: "2%"}} />
+                                                    <table style={{position: "relative", left: 0, right: 0, margin: "auto", border: "none", textAlign: "center", height: "55%"}}>
+                                                        <tbody style={{height: "100%"}}>
+                                                            <tr style={{height: "100%"}}>
+                                                                {
+                                                                    this.state.fit.slice(0, this.state.fit.length - 1).map((val, index) => {
+                                                                        return (
+                                                                            <td style={{border: "none", paddingLeft: "40px", width: "15%"}}>
+                                                                                <Doughnut data={{
+                                                                                    datasets: [{
+                                                                                        borderWidth: 1,
+                                                                                        data: [
+                                                                                            val,
+                                                                                            val > fitGoal ? 0 : (fitGoal - val)
+                                                                                        ],
+                                                                                        backgroundColor: [
+                                                                                            "white",
+                                                                                            "black"
+                                                                                        ]  
+                                                                                    }],
+                                                                                    labels: [
+                                                                                        "Completed",
+                                                                                        "Left to go"
+                                                                                    ]
+                                                                                }}
+                                                                                width={9}
+                                                                                height={9}
+                                                                                options={{
+                                                                                    title: {
+                                                                                        display: true,
+                                                                                        fontFamily: "'Assistant', 'Oxygen', 'Roboto', sans-serif",
+                                                                                        fontColor: "white",
+                                                                                        text: [moment().subtract(6 - index, "days").format("dddd"), val + " " + googleFitActivityUnits],
+                                                                                        fontSize: 15
+                                                                                    },
+                                                                                    legend: {
+                                                                                        display: false
+                                                                                    },
+                                                                                    maintainAspectRatio: false,
+                                                                                    cutoutPercentage: 80
+                                                                                }} />
+                                                                            </td>
+                                                                        );
+                                                                    })
+                                                                }
+                                                                
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )
+                                    }
                                 </div>
                             </td>
                         </tr>
