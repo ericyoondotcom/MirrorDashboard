@@ -255,7 +255,12 @@ export default class Dashboard extends React.Component {
         }else{
             eventsHtml = this.state.events.slice(0, maxEntries - 1).map((event, i) => {
                 return (
-                    <li className="entry" key={"event-" + event.id}>{event.name} <span className="dimmed right">{event.start.fromNow()} – {event.start.calendar()}</span></li>
+                    <li className="entry" key={"event-" + event.id}>{event.name} <span className="dimmed right">{event.start.calendar(null, {
+                        sameDay: "h:mm A",
+                        nextDay: "[Tomorrow at] h:mm A",
+                        nextWeek: "ddd [at] h:mm A",
+                        sameElse: "MMM Do at h:mm A"
+                    })}</span></li>
                 );
             });
             if(maxEntries < this.state.events.length){
