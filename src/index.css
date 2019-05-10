@@ -71,3 +71,7 @@ table#main td, table#main tr {
   height: 100%;
   position: relative;
 }
+
+li.entry {
+  font-size: 23px;
+}

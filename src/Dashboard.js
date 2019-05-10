@@ -144,11 +144,22 @@ export default class Dashboard extends React.Component {
             const tasks = results.map((result) => {
                 if(result.result.items === undefined) return [];
                 return result.result.items.map((item) => {
+                    let date;
+                    if("due" in item){
+                        date = new Date(item.due);
+                    }
                     return {
                         name: item.title,
                         id: item.id,
-                        //TODO: Add due date support
-                        duedate: /*"due" in item ? moment(item.due).add(1, "days").local(): */null
+                        duedate: "due" in item ? (
+                            moment()
+                                .milliseconds(0)
+                                .seconds(0)
+                                .minutes(0)
+                                .hours(23)
+                                .date(date.getUTCDate())
+                                .month(date.getUTCMonth())
+                        ) : null
                     };
                 });
             }).flat().sort((a, b) => {
@@ -244,7 +255,7 @@ export default class Dashboard extends React.Component {
         }else{
             eventsHtml = this.state.events.slice(0, maxEntries - 1).map((event, i) => {
                 return (
-                    <li style={{fontSize: "20px"}} key={"event-" + event.id}>{event.name} <span className="dimmed right">{event.start.fromNow()} – {event.start.calendar()}</span></li>
+                    <li className="entry" key={"event-" + event.id}>{event.name} <span className="dimmed right">{event.start.fromNow()} – {event.start.calendar()}</span></li>
                 );
             });
             if(maxEntries < this.state.events.length){
@@ -266,7 +277,7 @@ export default class Dashboard extends React.Component {
         }else{
             tasksHtml = this.state.tasks.slice(0, maxEntries - 1).map((task, i) => {
                 return (
-                    <li style={{fontSize: "20px"}} key={"task-" + task.id} >{task.name} <span className="dimmed right">{task.duedate === null ? "" : ("Due " + task.duedate.fromNow().toString())}</span></li>
+                    <li className="entry" key={"task-" + task.id} >{task.name} <span className="dimmed right">{task.duedate === null ? "" : ("Due " + task.duedate.fromNow().toString())}</span></li>
                 );
             });
             if(maxEntries < this.state.tasks.length){
