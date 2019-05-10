@@ -1,4 +1,4 @@
 #!/bin/bash
 
-serve -s build &
-chromium-browser http://localhost:5000 --start-fullscreen
+serve -s build -l 3000 &
+chromium-browser http://localhost:3000 --start-fullscreen
