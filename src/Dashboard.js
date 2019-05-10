@@ -5,7 +5,7 @@ import React from "react";
 import { Doughnut } from 'react-chartjs-2';
 import DarkSkyApi from 'dark-sky-api';
 import moment from "moment";
-import {apiKey, clientId, calendars, calendarLookAhead, maxEntries, taskLists, secondaryLocation, homeLatitude, homeLongitude, workLatitude, workLongitude, darkSkyKey, googleFitActivity, googleFitActivityUnits, googleAuthScopes, fitGoal} from "./config";
+import {apiKey, clientId, calendars, calendarLookAhead, maxEntries, taskLists, secondaryLocation, homeLatitude, homeLongitude, workLatitude, workLongitude, darkSkyKey, googleFitActivity, googleFitActivityUnits, googleAuthScopes, fitGoal, refreshRates} from "./config";
 
 export default class Dashboard extends React.Component {
     constructor(props){
@@ -38,10 +38,8 @@ export default class Dashboard extends React.Component {
                 }
             });
         });
-        
-        setInterval(() => {
-            this.setState({currentTime: moment()});
-        }, 5000);
+
+        this.setRefreshIntervals();
 
     }
 
@@ -56,6 +54,28 @@ export default class Dashboard extends React.Component {
         gapi.auth2.getAuthInstance().signOut().then((result) => {
             this.setState({signedIn: false});
         });
+    }
+
+    setRefreshIntervals = () => {
+        setInterval(() => {
+            this.setState({currentTime: moment()});
+        }, 5000);
+
+        setInterval(() => {
+            this.fetchWeather();
+        }, refreshRates.weather);
+
+        setInterval(() => {
+            this.fetchCalendar();
+        }, refreshRates.calendar);
+
+        setInterval(() => {
+            this.fetchFit();
+        }, refreshRates.fit);
+
+        setInterval(() => {
+            this.fetchTasks();
+        }, refreshRates.tasks);
     }
 
     fetchWeather = () => {
