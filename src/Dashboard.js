@@ -239,12 +239,12 @@ export default class Dashboard extends React.Component {
             );
         } else if(this.state.events.length == 0){
             eventsHtml = (
-                <h2 style={{textAlign: "center", fontSize: "15px"}}>Your calendar's clear for the next {maxEntries} days.</h2>
+                <h2 style={{textAlign: "center", fontSize: "20px"}}>Your calendar's clear for the next {maxEntries} days.</h2>
             );
         }else{
             eventsHtml = this.state.events.slice(0, maxEntries - 1).map((event, i) => {
                 return (
-                    <li key={"event-" + event.id}>{event.name} <span className="dimmed right">{event.start.fromNow()} – {event.start.calendar()}</span></li>
+                    <li style={{fontSize: "20px"}} key={"event-" + event.id}>{event.name} <span className="dimmed right">{event.start.fromNow()} – {event.start.calendar()}</span></li>
                 );
             });
             if(maxEntries < this.state.events.length){
@@ -266,7 +266,7 @@ export default class Dashboard extends React.Component {
         }else{
             tasksHtml = this.state.tasks.slice(0, maxEntries - 1).map((task, i) => {
                 return (
-                    <li key={"task-" + task.id} >{task.name} <span className="dimmed right">{task.duedate === null ? "" : ("Due " + task.duedate.fromNow().toString())}</span></li>
+                    <li style={{fontSize: "20px"}} key={"task-" + task.id} >{task.name} <span className="dimmed right">{task.duedate === null ? "" : ("Due " + task.duedate.fromNow().toString())}</span></li>
                 );
             });
             if(maxEntries < this.state.tasks.length){
