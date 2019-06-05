@@ -1,6 +1,9 @@
 #secrets
 /src/config.js
 
+#build (also has secrets!)
+/build
+
 # dependencies
 /node_modules
 /.pnp
