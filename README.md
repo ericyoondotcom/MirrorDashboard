@@ -1,6 +1,7 @@
 # Mirror Dashboard
 A clean, simple UI for Magic Mirrors
 
+![Demo Image](https://i.imgur.com/qKNBPaM.png)
 ## Core Features
 The MirrorDashboard features 4 modules in each quadrant of the screen.
 
