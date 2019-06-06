@@ -5,8 +5,11 @@ A clean, simple UI for Magic Mirrors
 The MirrorDashboard features 4 modules in each quadrant of the screen.
 
 **📍Now** Features the date, time, and weather information via DarkSky API. You can view the weather at home and at a secondary location (work, school, etc)
+
 **🏃‍Google Fit** Keep track of your Google Fit goals for the past week with beautiful donut charts, right on your mirror.
+
 **📅Google Calendar** See what your day is going to look like.
+
 **✅Google Tasks** Stay on top of your tasks from your Mirror. 
 
 ## Raspberry Pi Installation
@@ -75,6 +78,7 @@ There are additional options that you usually can leave alone, but are customiza
 | refreshRates | How often each widget should refresh | See table below |
 
 `refreshRates` is a Javascript Object Dictionary with the following entries.
+
 | Key | Value | Type
 |---|---|---
 | weather | How often the weather widget should refresh, in milliseconds. Each weather refresh is 2 DarkSky API calls, and DarkSky currently imposes a limit of 1000 calls per day. | number
@@ -125,6 +129,7 @@ After you sign in with Google, you should be all set!
 
 ## How To Contribute
 ### Code Edits
+
 MirrorDashboard uses React. You can start a development server using:
 
     npm start
@@ -132,6 +137,7 @@ MirrorDashboard uses React. You can start a development server using:
 There are currently no strictly-enforced code style standards, and I welcome and encourage all Pull Requests!
 
 The `master` branch is the current version of MirrorDashboard that is pushed out to users.
+
 The `development` branch is the next release that is being developed on. One pull request will be sent from the `development` branch to the `master` branch once a release is ready. **Please send all pull requests to the development branch.**
 
 ### Issues, Feedback, and Bug Reports
@@ -142,6 +148,7 @@ Have any other concerns? Feel free to email me at eric@yoonicode.com.
 ## Contributors
 #### Main Design and Development
 Eric Yoon
+
 yoonicode.com
 
 ##### Code Contributors and Pull Requesters
