@@ -131,6 +131,9 @@ MirrorDashboard uses React. You can start a development server using:
 
 There are currently no strictly-enforced code style standards, and I welcome and encourage all Pull Requests!
 
+The `master` branch is the current version of MirrorDashboard that is pushed out to users.
+The `development` branch is the next release that is being developed on. One pull request will be sent from the `development` branch to the `master` branch once a release is ready. **Please send all pull requests to the development branch.**
+
 ### Issues, Feedback, and Bug Reports
 Found any issues, have any feature requests, but haven't had time to implement them? Create an issue on Github, and I will review it and possibly add it to the code.
 
