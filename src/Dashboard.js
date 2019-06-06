@@ -259,7 +259,7 @@ export default class Dashboard extends React.Component {
                         sameDay: "h:mm A",
                         nextDay: "[Tomorrow at] h:mm A",
                         nextWeek: "ddd [at] h:mm A",
-                        sameElse: "MMM Do at h:mm A"
+                        sameElse: "MMM Do [at] h:mm A"
                     })}</span></li>
                 );
             });
