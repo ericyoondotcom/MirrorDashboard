@@ -86,6 +86,7 @@ export default class Dashboard extends React.Component {
             latitude: homeLatitude,
             longitude: homeLongitude
         }).then((result) => {
+            result.precipProbability *= 100;
             this.setState({homeWeather: result});
         });
 
@@ -93,6 +94,7 @@ export default class Dashboard extends React.Component {
             latitude: workLatitude,
             longitude: workLongitude
         }).then((result) => {
+            result.precipProbability *= 100;
             this.setState({workWeather: result});
         });
     }
