@@ -115,8 +115,9 @@ export default class Dashboard extends React.Component {
                 return result.result.items.map((item) => {
                     return {
                         name: item.summary,
-                        start: moment(item.start.dateTime),
-                        end: moment(item.end.dateTime),
+                        allDay: item.start.dateTime == null,
+                        start: (item.start.dateTime == null) ? moment(item.start.date) : moment(item.start.dateTime),
+                        end: (item.end.dateTime == null) ? moment(item.end.date) : moment(item.end.dateTime),
                         location: item.location,
                         id: item.id
                     };
@@ -184,12 +185,12 @@ export default class Dashboard extends React.Component {
             method: "POST",
             body: {
                 "aggregateBy": [
-                  {
+                    {
                     "dataTypeName": googleFitActivity
-                  }
+                    }
                 ],
                 "bucketByTime": {
-                  "durationMillis": 86400000
+                    "durationMillis": 86400000
                 },
                 "startTimeMillis": moment().hour(23).minute(59).second(59).millisecond(999).subtract(1, "week").valueOf(),
                 "endTimeMillis": moment().hour(23).minute(59).second(59).millisecond(999).valueOf()
@@ -197,10 +198,10 @@ export default class Dashboard extends React.Component {
         }).then((result) => {
             console.log(result);
             let data = result.result.bucket.map((day) => {
-              if(day.dataset.length === 0){
-                return 0;
-              }
-              return day.dataset[0].point[0].value[0].intVal; 
+                if(day.dataset.length === 0){
+                    return 0;
+                }
+                return day.dataset[0].point[0].value[0].intVal; 
             });
             this.setState({fit: data});
         });
@@ -253,14 +254,27 @@ export default class Dashboard extends React.Component {
                 <h2 style={{textAlign: "center", fontSize: "20px"}}>Your calendar's clear for the next {maxEntries} days.</h2>
             );
         }else{
+            console.log(this.state.events);
             eventsHtml = this.state.events.slice(0, maxEntries - 1).map((event, i) => {
-                return (
-                    <li className="entry" key={"event-" + event.id}>{event.name} <span className="dimmed right">{event.start.calendar(null, {
+                let date;
+                if(event.allDay){
+                    date = event.start.calendar(null, {
+                        sameDay: "[Today]",
+                        nextDay: "[Tomorrow]",
+                        nextWeek: "dddd",
+                        sameElse: "ddd[,] MMM Mo"
+                    });
+                }else{
+                    date = event.start.calendar(null, {
                         sameDay: "h:mm A",
                         nextDay: "[Tomorrow at] h:mm A",
                         nextWeek: "ddd [at] h:mm A",
                         sameElse: "MMM Do [at] h:mm A"
-                    })}</span></li>
+                    });
+                }
+
+                return (
+                    <li className="entry" key={"event-" + event.id}>{event.name} <span className="dimmed right">{date}</span></li>
                 );
             });
             if(maxEntries < this.state.events.length){
@@ -273,11 +287,11 @@ export default class Dashboard extends React.Component {
         let tasksHtml;
         if(this.state.tasks === null){
             tasksHtml = (
-                <h2 style={{textAlign: "center", fontSize: "15px"}}>Loading...</h2>
+                <h2 style={{textAlign: "center", fontSize: "20px"}}>Loading...</h2>
             );
         } else if(this.state.tasks.length == 0){
             tasksHtml = (
-                <h2 style={{textAlign: "center", fontSize: "15px"}}>Good job! Nothing to do.</h2>
+                <h2 style={{textAlign: "center", fontSize: "20px"}}>Good job! Nothing to do.</h2>
             );
         }else{
             tasksHtml = this.state.tasks.slice(0, maxEntries - 1).map((task, i) => {
@@ -287,7 +301,7 @@ export default class Dashboard extends React.Component {
             });
             if(maxEntries < this.state.tasks.length){
                 tasksHtml.push(
-                    <p key="hiddenTasksNotif" style={{textAlign: "center", fontSize: "15px"}}>{this.state.tasks.length - maxEntries} more tasks hidden</p>
+                    <p key="hiddenTasksNotif" style={{textAlign: "center", fontSize: "17px"}}>{this.state.tasks.length - maxEntries} more tasks hidden</p>
                 );
             }
         }
@@ -356,7 +370,7 @@ export default class Dashboard extends React.Component {
                                                     options={{
                                                         title: {
                                                             display: true,
-                                                            fontFamily: "'Assistant', 'Oxygen', 'Roboto', sans-serif",
+                                                            fontFamily: "'Muli', 'Oxygen', 'Roboto', sans-serif",
                                                             fontColor: "white",
                                                             text: ["Today", this.state.fit[this.state.fit.length - 1] + " " + googleFitActivityUnits],
                                                             fontSize: 20
@@ -397,7 +411,7 @@ export default class Dashboard extends React.Component {
                                                                                 options={{
                                                                                     title: {
                                                                                         display: true,
-                                                                                        fontFamily: "'Assistant', 'Oxygen', 'Roboto', sans-serif",
+                                                                                        fontFamily: "'Muli', 'Oxygen', 'Roboto', sans-serif",
                                                                                         fontColor: "white",
                                                                                         text: [moment().subtract(6 - index, "days").format("dddd"), val + " " + googleFitActivityUnits],
                                                                                         fontSize: 15
