@@ -3,6 +3,11 @@ A clean, simple UI for Magic Mirrors
 
 ![Demo Image](resources/screenshot_a.png)
 
+-----
+Developed by Eric
+
+View more of my projects at [yoonicode.com](http://yoonicode.com)
+
 ## Core Features
 The MirrorDashboard features 4 modules in each quadrant of the screen.
 
