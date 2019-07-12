@@ -13,10 +13,13 @@ export const clientId = "";
 
 export const darkSkyKey = "";
 
+export const tempLowerBound = 50;
+export const tempUpperBound = 90;
+
 export const secondaryLocation = "work";
 
-export const homeLatitude = 34.0672583;
-export const homeLongitude = -118.3443719;
+export const homeLatitude = 40.7678746;
+export const homeLongitude = -73.9836868;
 
 export const workLatitude = 38.8976763;
 export const workLongitude = -77.0387185;
@@ -32,6 +35,8 @@ export const maxEntries = 15;
 export const taskLists = [
     
 ];
+
+export const anxietyLevel = 5;
 
 export const googleFitActivity = "com.google.step_count.delta";
 

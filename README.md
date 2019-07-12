@@ -3,11 +3,6 @@ A clean, simple UI for Magic Mirrors
 
 ![Demo Image](resources/screenshot_a.png)
 
------
-Developed by Eric
-
-View more of my projects at [yoonicode.com](http://yoonicode.com)
-
 ## Core Features
 The MirrorDashboard features 4 modules in each quadrant of the screen.
 
@@ -64,6 +59,8 @@ Now, we must add some parameters to the config file.
 | apiKey | The Google API key from before. | string 
 | clientId | The Google Client ID from before. Will probably look something like `<Random String>.apps.googleusercontent.com` | string 
 | darkSkyKey | The DarkSky Secret Key from before. | string 
+| tempLowerBound | For the color of the temperature indicator. What is a reasonable coldest (bluest) temperature in your location? | decimal number 
+| tempUpperBound | For the color of the temperature indicator. What is a reasonable hottest (reddest) temperature in your location? | decimal number 
 | secondaryLocation | Where do you commute to? Will usually be `work`, `school`, etc. (Will be `toUpperCase()`d) | string 
 | homeLatitude | The latitude coordinate of the Magic Mirror (used for weather). | decimal number 
 | homeLongitude | The longitude coordinate of the Magic Mirror (used for weather). | decimal number 
@@ -73,6 +70,7 @@ Now, we must add some parameters to the config file.
 | calendarLookAhead | How many days in advance an event should be shown. | integer
 | maxEntries | The maximum number of calendar events and tasks to display. | integer
 | taskLists | The IDs of the Google Tasks lists to show. Find IDs [here](https://developers.google.com/tasks/v1/reference/tasklists/list). | string[]
+| anxietyLevel | Tasks will gradually start turning red as they get closer to the due date. How many days out should they start turning red? | integer
 | googleFitActivity | A "data type for instantaneous reading", as described on the [Google Developers Website](https://developers.google.com/fit/android/data-types). | string
 | googleFitActivityUnits | The unit of the above data type, to be displayed on the mirror. | string
 | fitGoal | Your Google Fit goal, or how many (steps/calories/miles etc) it takes to fill up the donut charts. |
@@ -133,6 +131,8 @@ Finally, globally install the serve command:
     ./start.sh
 
 After you sign in with Google, you should be all set!
+
+**Tip** You can always sign out by clicking on your name in the upper left. 
 
 ## How To Contribute
 ### Code Edits

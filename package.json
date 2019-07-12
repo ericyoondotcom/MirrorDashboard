@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "chart.js": "^2.8.0",
+    "color-interpolate": "^1.0.4",
     "dark-sky-api": "^0.6.32",
     "moment": "^2.24.0",
     "react": "^16.8.6",

@@ -5,7 +5,11 @@ import React from "react";
 import { Doughnut } from 'react-chartjs-2';
 import DarkSkyApi from 'dark-sky-api';
 import moment from "moment";
-import {apiKey, clientId, calendars, calendarLookAhead, maxEntries, taskLists, secondaryLocation, homeLatitude, homeLongitude, workLatitude, workLongitude, darkSkyKey, googleFitActivity, googleFitActivityUnits, googleAuthScopes, fitGoal, refreshRates} from "./config";
+import interpolate from "color-interpolate";
+
+import {apiKey, clientId, calendars, calendarLookAhead, maxEntries, taskLists, secondaryLocation, homeLatitude, homeLongitude, workLatitude, workLongitude, darkSkyKey, googleFitActivity, googleFitActivityUnits, googleAuthScopes, fitGoal, refreshRates, tempLowerBound, tempUpperBound, anxietyLevel} from "./config";
+import {googleCalendarColors} from "./static";
+
 
 export default class Dashboard extends React.Component {
     constructor(props){
@@ -86,7 +90,6 @@ export default class Dashboard extends React.Component {
             latitude: homeLatitude,
             longitude: homeLongitude
         }).then((result) => {
-            result.precipProbability *= 100;
             this.setState({homeWeather: result});
         });
 
@@ -94,7 +97,6 @@ export default class Dashboard extends React.Component {
             latitude: workLatitude,
             longitude: workLongitude
         }).then((result) => {
-            result.precipProbability *= 100;
             this.setState({workWeather: result});
         });
     }
@@ -116,6 +118,7 @@ export default class Dashboard extends React.Component {
             const events = results.map((result) => {
                 return result.result.items.map((item) => {
                     return {
+                        color: item.colorId === undefined ? "default" : googleCalendarColors.event[item.colorId.toString()].background,
                         name: item.summary,
                         allDay: item.start.dateTime == null,
                         start: (item.start.dateTime == null) ? moment(item.start.date) : moment(item.start.dateTime),
@@ -168,12 +171,12 @@ export default class Dashboard extends React.Component {
             }).flat().sort((a, b) => {
                 if(a.duedate === null){
                     if(b.duedate === null){
-                        return a;
+                        return 0;
                     }
-                    return b;
+                    return 1;
                 }
                 if(b.duedate === null){
-                    return a;
+                    return -1;
                 }
                 return a.duedate.valueOf() - b.duedate.valueOf();
             });
@@ -198,7 +201,6 @@ export default class Dashboard extends React.Component {
                 "endTimeMillis": moment().hour(23).minute(59).second(59).millisecond(999).valueOf()
             }
         }).then((result) => {
-            console.log(result);
             let data = result.result.bucket.map((day) => {
                 if(day.dataset.length === 0){
                     return 0;
@@ -256,7 +258,6 @@ export default class Dashboard extends React.Component {
                 <h2 style={{textAlign: "center", fontSize: "20px"}}>Your calendar's clear for the next {maxEntries} days.</h2>
             );
         }else{
-            console.log(this.state.events);
             eventsHtml = this.state.events.slice(0, maxEntries - 1).map((event, i) => {
                 let date;
                 if(event.allDay){
@@ -276,7 +277,7 @@ export default class Dashboard extends React.Component {
                 }
 
                 return (
-                    <li className="entry" key={"event-" + event.id}>{event.name} <span className="dimmed right">{date}</span></li>
+                    <li className="entry" key={"event-" + event.id} style={{color: event.color}}>{event.name} <span className="dimmed right">{date}</span></li>
                 );
             });
             if(maxEntries < this.state.events.length){
@@ -297,8 +298,21 @@ export default class Dashboard extends React.Component {
             );
         }else{
             tasksHtml = this.state.tasks.slice(0, maxEntries - 1).map((task, i) => {
+
                 return (
-                    <li className="entry" key={"task-" + task.id} >{task.name} <span className="dimmed right">{task.duedate === null ? "" : ("Due " + task.duedate.fromNow().toString())}</span></li>
+                    <li className="entry" key={"task-" + task.id}>
+                        {task.name}
+                        <span
+                            className="right"
+                            style={{
+                                color: (task.duedate === null) ?
+                                    "cornflowerblue" :
+                                    interpolate(["#ff6e6e", "#cccccc"])(task.duedate.diff(moment(), "days") / anxietyLevel)
+                            }}
+                        >
+                            {task.duedate === null ? "" : ("Due " + task.duedate.fromNow().toString())}
+                        </span>
+                    </li>
                 );
             });
             if(maxEntries < this.state.tasks.length){
@@ -317,23 +331,63 @@ export default class Dashboard extends React.Component {
                                 <div className="sectionWrapper">
                                     <h1 className="sectionHeader" style={{textAlign: "center"}} onClick={this.handleSignOut}>Good {timeOfDay}, {this.state.user.getBasicProfile().getGivenName()}!</h1>
                                     <div style={{padding: "1.7vh", textAlign: "center"}}>
-                                        <h2 style={{fontSize: "2vh", margin: 0}}>It's {this.state.currentTime.format("dddd, MMMM Do")}</h2>
-                                        <h1 style={{fontSize: "9vh", margin: 0}}>{this.state.currentTime.format("h:mm A")}</h1>
+                                        <h2 style={{fontSize: "2.5vh", margin: 0}}>It's {this.state.currentTime.format("dddd, MMMM Do")}</h2>
+                                        <h1 style={{fontSize: "8vh", margin: 0}}>{this.state.currentTime.format("h:mm A")}</h1>
                                     </div>
                                     <table style={{position: "relative", left: 0, right: 0, margin: "auto", border: "none", textAlign: "center"}}>
                                         <tbody>
                                             <tr>
                                                 <td style={{border: "none", paddingRight: "40px"}}>
                                                     <h2 style={{fontSize: "1.6vh", margin: 0}}>HOME</h2>
-                                                    <h1 style={{fontSize: "8vh", margin: 0}}>{this.state.homeWeather === null ? "..." : (Math.round(this.state.homeWeather.temperature) + "°")}</h1>
+                                                    <h1
+                                                        style={{
+                                                            fontSize: "8vh",
+                                                            margin: 0,
+                                                            color: (
+                                                                this.state.homeWeather == null ?
+                                                                    "default" :
+                                                                    interpolate(
+                                                                        ["#6e6eff", "#ffffff", "#ff6e6e"]
+                                                                    )(
+                                                                        (this.state.homeWeather.temperature - tempLowerBound) / (tempUpperBound - tempLowerBound)
+                                                                    )
+                                                            )
+                                                        }}
+                                                    >
+                                                        {this.state.homeWeather === null ? "..." : (Math.round(this.state.homeWeather.temperature) + "°")}
+                                                    </h1>
                                                     <h2 style={{fontSize: "1.6vh", margin: 0}}>{this.state.homeWeather === null ? "Loading weather" : this.state.homeWeather.summary}</h2>
-                                                    <h2 style={{fontSize: "1.6vh", margin: 0}}>{this.state.homeWeather === null ? "Loading precipitation" : (this.state.homeWeather.precipProbability.toString() + "% chance precip.")}</h2>
+                                                    <h2 style={{
+                                                        fontSize: "1.6vh",
+                                                        margin: 0,
+                                                        color: (this.state.homeWeather === null) ? "#ffffff" : interpolate(["#ffffff", "#6e6eff"])(this.state.homeWeather.precipProbability)
+                                                    }}>{this.state.homeWeather === null ? "Loading precipitation" : ((this.state.homeWeather.precipProbability * 100).toString() + "% chance precip.")}</h2>
                                                 </td>
                                                 <td style={{border: "none", paddingLeft: "40px"}}>
                                                     <h2 style={{fontSize: "1.6vh", margin: 0}}>{secondaryLocation.toUpperCase()}</h2>
-                                                    <h1 style={{fontSize: "8vh", margin: 0}}>{this.state.workWeather === null ? "..." : (Math.round(this.state.workWeather.temperature) + "°")}</h1>
+                                                    <h1
+                                                        style={{
+                                                            fontSize: "8vh",
+                                                            margin: 0,
+                                                            color: (
+                                                                this.state.workWeather == null ?
+                                                                    "default" :
+                                                                    interpolate(
+                                                                        ["#6e6eff", "#ffffff", "#ff6e6e"]
+                                                                    )(
+                                                                        (this.state.workWeather.temperature - tempLowerBound) / (tempUpperBound - tempLowerBound)
+                                                                    )
+                                                            )
+                                                        }}
+                                                    >
+                                                        {this.state.workWeather === null ? "..." : (Math.round(this.state.workWeather.temperature) + "°")}
+                                                    </h1>
                                                     <h2 style={{fontSize: "1.6vh", margin: 0}}>{this.state.workWeather === null ? "Loading weather" : this.state.workWeather.summary}</h2>
-                                                    <h2 style={{fontSize: "1.6vh", margin: 0}}>{this.state.workWeather === null ? "Loading precipitation" : (this.state.workWeather.precipProbability.toString() + "% chance precip.")}</h2>
+                                                    <h2 style={{
+                                                        fontSize: "1.6vh",
+                                                        margin: 0,
+                                                        color: (this.state.workWeather === null) ? "#ffffff" : interpolate(["#ffffff", "#6e6eff"])(this.state.workWeather.precipProbability)
+                                                    }}>{this.state.workWeather === null ? "Loading precipitation" : ((this.state.workWeather.precipProbability * 100).toString() + "% chance precip.")}</h2>
                                                 </td>
                                             </tr>
                                         </tbody>
@@ -358,7 +412,7 @@ export default class Dashboard extends React.Component {
                                                                 this.state.fit[this.state.fit.length - 1] > fitGoal ? 0 : (fitGoal - this.state.fit[this.state.fit.length - 1])
                                                             ],
                                                             backgroundColor: [
-                                                                "white",
+                                                                interpolate(["#ff6e6e", "#ffff6e", "#6eff6e"])(this.state.fit[this.state.fit.length - 1] / fitGoal),
                                                                 "black"
                                                             ]  
                                                         }],
@@ -381,7 +435,7 @@ export default class Dashboard extends React.Component {
                                                             display: false
                                                         },
                                                         maintainAspectRatio: false,
-                                                        cutoutPercentage: 80
+                                                        cutoutPercentage: 70
                                                     }} />
                                                     <div style={{marginTop: "2%"}} />
                                                     <table style={{position: "relative", left: 0, right: 0, margin: "auto", border: "none", textAlign: "center", height: "55%"}}>
@@ -399,7 +453,7 @@ export default class Dashboard extends React.Component {
                                                                                             val > fitGoal ? 0 : (fitGoal - val)
                                                                                         ],
                                                                                         backgroundColor: [
-                                                                                            "white",
+                                                                                            interpolate(["#ff6e6e", "#ffff6e", "#6eff6e"])(val / fitGoal),
                                                                                             "black"
                                                                                         ]  
                                                                                     }],
@@ -422,7 +476,7 @@ export default class Dashboard extends React.Component {
                                                                                         display: false
                                                                                     },
                                                                                     maintainAspectRatio: false,
-                                                                                    cutoutPercentage: 80
+                                                                                    cutoutPercentage: 70
                                                                                 }} />
                                                                             </td>
                                                                         );
