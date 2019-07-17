@@ -119,7 +119,7 @@ If it's your first time starting MirrorDashboard, you may need to allow your mac
 
     sudo chmod +x start.sh
 
-The start script will first serve the `build` directory then open the Chromium browser. If you don't already, install it [here](https://www.chromium.org/getting-involved/download-chromium).
+The start script will first serve the `build` directory then open the Chromium browser. If you don't have it already, install it [here](https://www.chromium.org/getting-involved/download-chromium).
 By default, it will open Chromium in kiosk mode, making it mildly annoying to exit. If the device you are starting MirrorDashboard on is not a dedicated computer, remove `--kiosk` from the script. If you want it to start in a window of Chromium, also remove the `--start-fullscreen` flag.
 
 Finally, globally install the serve command:
@@ -157,6 +157,9 @@ Have any other concerns? Feel free to email me at eric@yoonicode.com.
 Eric Yoon
 
 yoonicode.com
+
+##### Inspiration
+MirrorDashboard was heavily inspired by [MichMich's MagicMirror<sup>2</sup>](https://github.com/MichMich/MagicMirror), and the Fitness module was inspired by [MMM-GoogleFit by amcolash](https://github.com/amcolash/MMM-GoogleFit).
 
 ##### Code Contributors and Pull Requesters
 None yet! I encourage everyone to take a peek at the source code and help out!
