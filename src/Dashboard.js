@@ -202,9 +202,10 @@ export default class Dashboard extends React.Component {
             }
         }).then((result) => {
             let data = result.result.bucket.map((day) => {
-                if(day.dataset.length === 0){
+                if(day.dataset.length === 0 || day.dataset[0].point.length === 0){
                     return 0;
                 }
+                console.log(day.dataset[0]);
                 return day.dataset[0].point[0].value[0].intVal; 
             });
             this.setState({fit: data});
@@ -356,9 +357,9 @@ export default class Dashboard extends React.Component {
                                                     >
                                                         {this.state.homeWeather === null ? "..." : (Math.round(this.state.homeWeather.temperature) + "°")}
                                                     </h1>
-                                                    <h2 style={{fontSize: "1.6vh", margin: 0}}>{this.state.homeWeather === null ? "Loading weather" : this.state.homeWeather.summary}</h2>
+                                                    <h2 style={{fontSize: "2vh", margin: 0}}>{this.state.homeWeather === null ? "Loading weather" : this.state.homeWeather.summary}</h2>
                                                     <h2 style={{
-                                                        fontSize: "1.6vh",
+                                                        fontSize: "2vh",
                                                         margin: 0,
                                                         color: (this.state.homeWeather === null) ? "#ffffff" : interpolate(["#ffffff", "#6e6eff"])(this.state.homeWeather.precipProbability)
                                                     }}>{this.state.homeWeather === null ? "Loading precipitation" : ((this.state.homeWeather.precipProbability * 100).toString() + "% chance precip.")}</h2>
@@ -382,9 +383,9 @@ export default class Dashboard extends React.Component {
                                                     >
                                                         {this.state.workWeather === null ? "..." : (Math.round(this.state.workWeather.temperature) + "°")}
                                                     </h1>
-                                                    <h2 style={{fontSize: "1.6vh", margin: 0}}>{this.state.workWeather === null ? "Loading weather" : this.state.workWeather.summary}</h2>
+                                                    <h2 style={{fontSize: "2vh", margin: 0}}>{this.state.workWeather === null ? "Loading weather" : this.state.workWeather.summary}</h2>
                                                     <h2 style={{
-                                                        fontSize: "1.6vh",
+                                                        fontSize: "2vh",
                                                         margin: 0,
                                                         color: (this.state.workWeather === null) ? "#ffffff" : interpolate(["#ffffff", "#6e6eff"])(this.state.workWeather.precipProbability)
                                                     }}>{this.state.workWeather === null ? "Loading precipitation" : ((this.state.workWeather.precipProbability * 100).toString() + "% chance precip.")}</h2>
