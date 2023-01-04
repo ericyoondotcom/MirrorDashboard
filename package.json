@@ -6,7 +6,7 @@
     "chart.js": "^2.8.0",
     "color-interpolate": "^1.0.4",
     "dark-sky-api": "^0.6.32",
-    "moment": "^2.24.0",
+    "moment": "^2.29.4",
     "react": "^16.8.6",
     "react-chartjs-2": "^2.7.6",
     "react-dom": "^16.8.6",
